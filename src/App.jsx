@@ -8,7 +8,7 @@ import './App.css'
 import projectsData from './data/projects.json'
 
 // Supabase
-import { supabase, signIn, signOut, saveUserData, loadUserData } from './lib/supabase'
+import { supabase, signIn, signUp, signOut, saveUserData, loadUserData } from './lib/supabase'
 
 // Seeded random number generator for consistent shuffling
 function seededRandom(seed) {
@@ -178,6 +178,14 @@ function App() {
     return { success: true }
   }
 
+  const handleSignUp = async (email, password) => {
+    const { data, error } = await signUp(email, password)
+    if (error) {
+      return { success: false, error: error.message }
+    }
+    return { success: true }
+  }
+
   const handleLogout = async () => {
     await signOut()
     setUser(null)
@@ -207,7 +215,7 @@ function App() {
 
   // Login modal
   if (showLogin) {
-    return <LoginModal onLogin={handleLogin} onClose={() => setShowLogin(false)} />
+    return <LoginModal onLogin={handleLogin} onSignUp={handleSignUp} onClose={() => setShowLogin(false)} />
   }
 
   // Reset confirmation modal
@@ -551,20 +559,33 @@ function HistoryCard({ item, onClick }) {
   )
 }
 
-function LoginModal({ onLogin, onClose }) {
+function LoginModal({ onLogin, onSignUp, onClose }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
     setError('')
+    setSuccess('')
 
-    const result = await onLogin(email, password)
-    if (!result.success) {
-      setError(result.error || 'Invalid credentials')
+    if (isSignUp) {
+      const result = await onSignUp(email, password)
+      if (!result.success) {
+        setError(result.error || 'Sign up failed')
+      } else {
+        setSuccess('Account created! You can now login.')
+        setIsSignUp(false)
+      }
+    } else {
+      const result = await onLogin(email, password)
+      if (!result.success) {
+        setError(result.error || 'Invalid credentials')
+      }
     }
     setIsLoading(false)
   }
@@ -572,7 +593,7 @@ function LoginModal({ onLogin, onClose }) {
   return (
     <div className="app">
       <div className="login-modal">
-        <h2>Login</h2>
+        <h2>{isSignUp ? 'Sign Up' : 'Login'}</h2>
         <form onSubmit={handleSubmit}>
           <input
             type="email"
@@ -584,22 +605,30 @@ function LoginModal({ onLogin, onClose }) {
           />
           <input
             type="password"
-            placeholder="Password"
+            placeholder="Password (min 6 characters)"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
+            autoComplete={isSignUp ? 'new-password' : 'current-password'}
+            minLength={6}
             required
           />
           {error && <p className="login-error">{error}</p>}
+          {success && <p className="login-success">{success}</p>}
           <div className="login-buttons">
             <button type="submit" className="login-submit" disabled={isLoading}>
-              {isLoading ? <Loader className="spinner" size={16} /> : 'Login'}
+              {isLoading ? <Loader className="spinner" size={16} /> : (isSignUp ? 'Sign Up' : 'Login')}
             </button>
             <button type="button" className="login-cancel" onClick={onClose} disabled={isLoading}>
               Cancel
             </button>
           </div>
         </form>
+        <p className="login-toggle">
+          {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+          <button type="button" onClick={() => { setIsSignUp(!isSignUp); setError(''); setSuccess(''); }}>
+            {isSignUp ? 'Login' : 'Sign Up'}
+          </button>
+        </p>
       </div>
     </div>
   )
