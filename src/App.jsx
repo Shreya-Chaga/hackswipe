@@ -375,70 +375,20 @@ function ShortsCard({ project, onSwipe, direction, isViewOnly = false }) {
   const likeOpacity = useTransform(x, [0, 100, 200], [0, 0.5, 1])
   const passOpacity = useTransform(x, [-200, -100, 0], [1, 0.5, 0])
 
-  const playerRef = useRef(null)
-  const containerRef = useRef(null)
-  const [player, setPlayer] = useState(null)
+  const iframeRef = useRef(null)
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [showSpeedMenu, setShowSpeedMenu] = useState(false)
 
   const youtubeId = getYouTubeId(project.youtube)
-  const playerId = `youtube-player-${youtubeId}-${Math.random().toString(36).substr(2, 9)}`
-
-  // Initialize YouTube IFrame API
-  useEffect(() => {
-    if (!youtubeId) return
-
-    // Load YouTube IFrame API if not already loaded
-    if (!window.YT) {
-      const tag = document.createElement('script')
-      tag.src = 'https://www.youtube.com/iframe_api'
-      const firstScriptTag = document.getElementsByTagName('script')[0]
-      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
-    }
-
-    const initPlayer = () => {
-      if (window.YT && window.YT.Player && containerRef.current) {
-        const newPlayer = new window.YT.Player(playerId, {
-          videoId: youtubeId,
-          playerVars: {
-            rel: 0,
-            modestbranding: 1,
-            playsinline: 1,
-          },
-          events: {
-            onReady: (event) => {
-              setPlayer(event.target)
-              playerRef.current = event.target
-            }
-          }
-        })
-      }
-    }
-
-    // Small delay to ensure DOM is ready
-    const timeout = setTimeout(() => {
-      if (window.YT && window.YT.Player) {
-        initPlayer()
-      } else {
-        window.onYouTubeIframeAPIReady = initPlayer
-      }
-    }, 100)
-
-    return () => {
-      clearTimeout(timeout)
-      if (playerRef.current && playerRef.current.destroy) {
-        try {
-          playerRef.current.destroy()
-        } catch (e) {
-          // Ignore destroy errors
-        }
-      }
-    }
-  }, [youtubeId, playerId])
 
   const handleSpeedChange = (speed) => {
-    if (player && player.setPlaybackRate) {
-      player.setPlaybackRate(speed)
+    // Use postMessage to control YouTube iframe speed
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(JSON.stringify({
+        event: 'command',
+        func: 'setPlaybackRate',
+        args: [speed]
+      }), '*')
       setPlaybackSpeed(speed)
     }
     setShowSpeedMenu(false)
@@ -486,10 +436,18 @@ function ShortsCard({ project, onSwipe, direction, isViewOnly = false }) {
       )}
 
       {/* Video Section */}
-      <div className="video-section" ref={containerRef}>
+      <div className="video-section">
         {youtubeId ? (
           <>
-            <div id={playerId} className="youtube-player"></div>
+            <iframe
+              ref={iframeRef}
+              src={`https://www.youtube.com/embed/${youtubeId}?rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
+              title={project.title}
+              className="youtube-player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
             {/* Speed Control Button */}
             <div className="speed-control">
               <button
