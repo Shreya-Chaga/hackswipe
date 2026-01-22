@@ -3,77 +3,99 @@ const fs = require('fs');
 // Read the scraped data
 const rawData = JSON.parse(fs.readFileSync('../devpost-scraper/devpost_winners_2026-01-07.json', 'utf8'));
 
+// Helper to get first 1-2 sentences (crisp summary)
+function getCrispSummary(text, maxLength = 200) {
+  if (!text) return null;
+
+  // Clean up the text
+  let clean = text
+    .replace(/\*\*/g, '')
+    .replace(/\n+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Get first 1-2 sentences
+  const sentences = clean.match(/[^.!?]+[.!?]+/g) || [clean];
+  let result = sentences[0] || clean;
+
+  // Add second sentence if short enough
+  if (sentences[1] && (result.length + sentences[1].length) < maxLength) {
+    result += sentences[1];
+  }
+
+  // Truncate if still too long
+  if (result.length > maxLength) {
+    result = result.substring(0, maxLength).trim() + '...';
+  }
+
+  return result.trim();
+}
+
 // Convert to the format needed by the app
 const projects = rawData.map(p => {
-  // Build a comprehensive summary from all available sections
-  // Goal: Give reader full context - what it does, how it was built, why it matters
-  let summaryParts = [];
+  // Build sectioned summary with crisp content
+  let sections = [];
 
-  // Start with AI summary if available (it's usually a good overview)
+  // Overview from AI summary
   if (p.aiSummary) {
-    const cleanSummary = p.aiSummary
-      .replace(/\*\*/g, '')
-      .replace(/IDEA SUMMARY[:\s]*/gi, '')
-      .replace(/TECHNICAL HIGHLIGHTS[:\s]*/gi, '')
-      .replace(/^#+\s*/gm, '')
-      .replace(/^\d+\.\s*/gm, '')
-      .trim();
-    if (cleanSummary) {
-      summaryParts.push(cleanSummary);
+    const overview = getCrispSummary(p.aiSummary, 250);
+    if (overview) {
+      sections.push(`📋 Overview\n${overview}`);
     }
   }
 
-  // Add "What it does" if not already covered
-  if (p.whatItDoes && !summaryParts.some(s => s.includes(p.whatItDoes.substring(0, 50)))) {
-    summaryParts.push(`What it does: ${p.whatItDoes.trim()}`);
+  // What it does
+  if (p.whatItDoes) {
+    const crisp = getCrispSummary(p.whatItDoes);
+    if (crisp) sections.push(`🎯 What it does\n${crisp}`);
   }
 
-  // Add inspiration/problem being solved
+  // Inspiration
   if (p.inspiration) {
-    summaryParts.push(`Inspiration: ${p.inspiration.trim()}`);
+    const crisp = getCrispSummary(p.inspiration);
+    if (crisp) sections.push(`💡 Inspiration\n${crisp}`);
   }
 
-  // Add how it was built (tech approach)
+  // How it was built
   if (p.howWeBuiltIt) {
-    summaryParts.push(`How it was built: ${p.howWeBuiltIt.trim()}`);
+    const crisp = getCrispSummary(p.howWeBuiltIt);
+    if (crisp) sections.push(`🔧 How it was built\n${crisp}`);
   }
 
-  // Add challenges faced
+  // Challenges
   if (p.challenges) {
-    summaryParts.push(`Challenges: ${p.challenges.trim()}`);
+    const crisp = getCrispSummary(p.challenges);
+    if (crisp) sections.push(`⚡ Challenges\n${crisp}`);
   }
 
-  // Add accomplishments
+  // Accomplishments
   if (p.accomplishments) {
-    summaryParts.push(`Accomplishments: ${p.accomplishments.trim()}`);
+    const crisp = getCrispSummary(p.accomplishments);
+    if (crisp) sections.push(`🏆 Accomplishments\n${crisp}`);
   }
 
-  // Add what they learned
+  // What we learned
   if (p.whatWeLearned) {
-    summaryParts.push(`What we learned: ${p.whatWeLearned.trim()}`);
+    const crisp = getCrispSummary(p.whatWeLearned);
+    if (crisp) sections.push(`📚 What we learned\n${crisp}`);
   }
 
-  // Add future plans
+  // What's next
   if (p.whatsNext) {
-    summaryParts.push(`What's next: ${p.whatsNext.trim()}`);
+    const crisp = getCrispSummary(p.whatsNext);
+    if (crisp) sections.push(`🚀 What's next\n${crisp}`);
   }
 
-  // Combine all parts with line breaks
-  let summary = summaryParts.join('\n\n');
+  // Combine sections
+  let summary = sections.join('\n\n');
 
-  // Fallback to tagline or description
+  // Fallback
   if (!summary && p.tagline) {
     summary = p.tagline;
   }
   if (!summary && p.fullDescription) {
-    summary = p.fullDescription;
+    summary = getCrispSummary(p.fullDescription, 300);
   }
-
-  // Clean up any remaining markdown artifacts
-  summary = summary
-    .replace(/\*\*/g, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
 
   // Get clean YouTube URL
   let youtube = '';
@@ -102,13 +124,10 @@ const projects = rawData.map(p => {
       .join('; ');
   }
 
-  // Get hackathon name if available
-  const hackathon = p.hackathon || null;
-
   return {
     title: p.title || 'Untitled Project',
     summary: summary || 'No description available.',
-    hackathon: hackathon,
+    hackathon: p.hackathon || null,
     prize: prize || null,
     techStack: (p.builtWith || []).join(', ') || null,
     github: (p.githubLinks || [])[0] || null,
