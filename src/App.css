@@ -319,11 +319,32 @@ body {
   color: #fff;
 }
 
-/* Summary */
+/* Summary - scrollable */
 .project-summary {
   font-size: 0.85rem;
   line-height: 1.6;
   color: #94a3b8;
+  max-height: 120px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.project-summary::-webkit-scrollbar {
+  width: 4px;
+}
+
+.project-summary::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+}
+
+.project-summary::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+.project-summary::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* Tech Stack */

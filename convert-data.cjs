@@ -5,7 +5,7 @@ const rawData = JSON.parse(fs.readFileSync('../devpost-scraper/devpost_winners_2
 
 // Convert to the format needed by the app
 const projects = rawData.map(p => {
-  // Extract clean summary
+  // Extract clean summary (short version for card)
   let summary = '';
   if (p.aiSummary) {
     // Remove markdown formatting and get first meaningful paragraph
@@ -31,9 +31,42 @@ const projects = rawData.map(p => {
     .replace(/^\d+\.\s*/, '')
     .trim();
 
-  // Limit length
-  if (summary.length > 300) {
-    summary = summary.substring(0, 297) + '...';
+  // Don't limit length - let it be scrollable in the app
+
+  // Build full description with sections
+  let description = '';
+
+  if (p.whatItDoes) {
+    description += `**What it does**\n${p.whatItDoes.trim()}\n\n`;
+  }
+
+  if (p.inspiration) {
+    description += `**Inspiration**\n${p.inspiration.trim()}\n\n`;
+  }
+
+  if (p.howWeBuiltIt) {
+    description += `**How we built it**\n${p.howWeBuiltIt.trim()}\n\n`;
+  }
+
+  if (p.challenges) {
+    description += `**Challenges**\n${p.challenges.trim()}\n\n`;
+  }
+
+  if (p.accomplishments) {
+    description += `**Accomplishments**\n${p.accomplishments.trim()}\n\n`;
+  }
+
+  if (p.whatWeLearned) {
+    description += `**What we learned**\n${p.whatWeLearned.trim()}\n\n`;
+  }
+
+  if (p.whatsNext) {
+    description += `**What's next**\n${p.whatsNext.trim()}\n\n`;
+  }
+
+  // Fallback to fullDescription if no sections
+  if (!description && p.fullDescription) {
+    description = p.fullDescription.trim();
   }
 
   // Get clean YouTube URL
@@ -66,8 +99,9 @@ const projects = rawData.map(p => {
   return {
     title: p.title || 'Untitled Project',
     summary: summary || 'No description available.',
+    description: description || null,  // Full description with sections
     prize: prize || null,
-    techStack: (p.builtWith || []).slice(0, 6).join(', ') || null,
+    techStack: (p.builtWith || []).join(', ') || null,  // Include all tech
     github: (p.githubLinks || [])[0] || null,
     youtube: youtube || null,
     demo: p.demoUrl || null,

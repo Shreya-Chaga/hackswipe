@@ -540,7 +540,7 @@ function ShortsCard({ project, onSwipe, direction, isViewOnly = false }) {
         {/* Title */}
         <h2 className="project-title">{project.title}</h2>
 
-        {/* Full Summary - scrollable */}
+        {/* Summary - scrollable for full reading */}
         <div className="project-summary">{project.summary}</div>
 
         {/* Tech Stack - show all */}
