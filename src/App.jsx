@@ -50,6 +50,7 @@ function App() {
   const [saving, setSaving] = useState(false)
   const [viewingProject, setViewingProject] = useState(null) // For viewing a project from history
   const [direction, setDirection] = useState(null)
+  const [swipeCount, setSwipeCount] = useState(0) // Track swipes since last save
 
   // Initialize projects
   const initializeProjects = useCallback(() => {
@@ -79,7 +80,8 @@ function App() {
       likedProjects: liked,
       history: history,
       currentIndex: currentIndex,
-      passedProjects: passed
+      passedProjects: passed,
+      userEmail: user.email
     })
     setSaving(false)
   }, [user, liked, history, currentIndex, passed])
@@ -92,6 +94,19 @@ function App() {
     }, 1000) // Debounce saves by 1 second
     return () => clearTimeout(timeout)
   }, [liked, history, currentIndex, passed, user, loading, saveData])
+
+  // Save on page unload (beforeunload) - CRITICAL for not losing data
+  useEffect(() => {
+    if (!user) return
+
+    const handleBeforeUnload = () => {
+      // Immediately save data when user closes/refreshes page
+      saveData()
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [user, saveData])
 
   // Check for existing session and set up auth listener
   useEffect(() => {
@@ -139,6 +154,14 @@ function App() {
       setPassed(prev => [...prev, currentProject])
     }
 
+    // Save every 5 swipes for extra reliability
+    const newSwipeCount = swipeCount + 1
+    setSwipeCount(newSwipeCount)
+    if (user && newSwipeCount >= 5) {
+      setSwipeCount(0)
+      saveData()
+    }
+
     setTimeout(() => {
       setCurrentIndex(prev => prev + 1)
       setDirection(null)
@@ -159,7 +182,8 @@ function App() {
         likedProjects: [],
         history: [],
         currentIndex: 0,
-        passedProjects: []
+        passedProjects: [],
+        userEmail: user.email
       })
     }
   }

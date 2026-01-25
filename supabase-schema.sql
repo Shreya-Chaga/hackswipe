@@ -6,6 +6,7 @@
 CREATE TABLE IF NOT EXISTS user_data (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
+  user_email TEXT,
   liked_projects JSONB DEFAULT '[]'::jsonb,
   history JSONB DEFAULT '[]'::jsonb,
   current_index INTEGER DEFAULT 0,
@@ -56,3 +57,8 @@ CREATE TRIGGER update_user_data_updated_at
   BEFORE UPDATE ON user_data
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- MIGRATION: Add user_email column (run this if table already exists)
+-- ============================================
+-- ALTER TABLE user_data ADD COLUMN IF NOT EXISTS user_email TEXT;

@@ -69,11 +69,12 @@ export async function loadHistory(userId) {
 }
 
 // Combined save/load for all user data
-export async function saveUserData(userId, { likedProjects, history, currentIndex, passedProjects }) {
+export async function saveUserData(userId, { likedProjects, history, currentIndex, passedProjects, userEmail }) {
   const { data, error } = await supabase
     .from('user_data')
     .upsert({
       user_id: userId,
+      user_email: userEmail,
       liked_projects: likedProjects,
       history: history,
       current_index: currentIndex,
